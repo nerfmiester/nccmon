@@ -94,6 +94,7 @@ func init() {
 
 }
 
+// one to one
 func main() {
 	flag.Parse()
 	_, err := initDb("127.0.0.1", 3000)

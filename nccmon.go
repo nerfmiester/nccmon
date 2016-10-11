@@ -61,6 +61,20 @@ type store struct {
 	RunStatusCode   string
 }
 
+type siteConfidenceAPI struct {
+	Version  string `json:"Version"`
+	Request  string `json:"Request"`
+	Response struct {
+		Status  string `json:"Status"`
+		Code    int    `json:"Code"`
+		Message string `json:"Message"`
+		APIKey  struct {
+			Lifetime int    `json:"Lifetime"`
+			Value    string `json:"Value"`
+		} `json:"ApiKey"`
+	} `json:"Response"`
+}
+
 type stores []store
 
 // Host is .
@@ -85,7 +99,7 @@ func main() {
 	_, err := initDb("127.0.0.1", 3000)
 	panicOnError(err)
 	fmt.Println("About to encode")
-	//enc := gob.NewEncoder(&storeB) // Will write to network.
+	enc := gob.NewEncoder(&storeB) // Will write to network.
 	//	dec := gob.NewDecoder(&storeB) // Will read from network.
 	fmt.Println("Woo hoo")
 	var url string
@@ -94,7 +108,12 @@ func main() {
 	//	var keys []*as.Key
 	runOutput := make(map[string][]store)
 
-	qry := "https://api.siteconfidence.co.uk/current/19472f8b2476debc63451032444fe41c/Return/[Account[Pages[Page[TestResults[TestResult[LocalDateTime,TestResultDetails[ResultDetail[ObjectUrl,TransferredBytes,ContentSeconds,TotalSeconds,GzipSavingPercentage,StatusCode]]]]]]]]/AccountId/MN1A6642/Id/MN1PG24667/StartDate/2016-09-01/EndDate/2016-09-02/ShowSteps/1/LimitTestResults/2/Format/json/"
+	apiKey := &siteConfidenceAPI{}
+	apiKeyURL := "https://api.siteconfidence.co.uk/current/username/adrian.jackson@specialistholidays.com/password/JDw!QcC6&lY45Zh/Format/json"
+
+	getJSON(apiKeyURL, apiKey)
+	fmt.Printf("the api key is %v \n", apiKey.Response.APIKey.Value)
+	qry := fmt.Sprintf("https://api.siteconfidence.co.uk/current/%v/Return/[Account[Pages[Page[TestResults[TestResult[LocalDateTime,TestResultDetails[ResultDetail[ObjectUrl,TransferredBytes,ContentSeconds,TotalSeconds,GzipSavingPercentage,StatusCode]]]]]]]]/AccountId/MN1A6642/Id/MN1PG24667/StartDate/2016-09-01/EndDate/2016-09-02/ShowSteps/1/LimitTestResults/9999/Format/json/", apiKey.Response.APIKey.Value)
 
 	res := &nccTestRes{}
 
@@ -110,10 +129,11 @@ func main() {
 			strre.ContentSecs = y.ContentSeconds
 			strre.GzipSavePercent = y.GzipSavingPercentage
 			strre.RunBytes = y.TransferredBytes
-			// err = enc.Encode(strre)
-			// if err != nil {
-			// 	log.Fatal("encode error:", err)
-			// }
+			//err = enc.Encode(strre)
+			//if err != nil {
+			//log.Fatal("encode error:", err)
+			//}
+			//fmt.Println("strre--->", strre)
 			runOutput[url] = append(runOutput[url], strre)
 
 		}
@@ -124,23 +144,24 @@ func main() {
 		return s1.RunResultSecs < s2.RunResultSecs
 	}
 	for _, v := range runOutput {
-		/*
-			fmt.Println("K--->", k)
-			fmt.Println("V--->", v)
-		*/
-		//	reader := bytes.NewReader(v)
-		//	dec := gob.NewDecoder(reader)
-		//	t := []store{}
 
-		// err = dec.Decode(&t)
-		// if err != nil {
-		// 	log.Fatal("decode error 1x:", err)
-		// }
+		//	fmt.Println("K--->", k)
+		fmt.Println("V--->", v)
+
+		//reader := bytes.NewReader(v)
+		//	dec := gob.NewDecoder(&storeB)
+		//		t := make([]store, 10)
+
+		//	err = dec.Decode(&t)
+		//		if err != nil {
+		//			log.Fatal("decode error 1x:", err)
+		//		}
 		fmt.Println("t before sort --->", v)
-
 		By(totSecs).Sort(v)
 		fmt.Println("t after sort --->", v)
-		//err = enc.Encode(t)
+		err = enc.Encode(v)
+		panicOnError(err)
+		fmt.Println("after encoding ---->", string(storeB.Bytes()))
 
 		/* if err != nil {
 			log.Fatal("encode error:", err)
@@ -155,13 +176,13 @@ func main() {
 			fmt.Println("K--->", k)
 			fmt.Println("V--->", v)
 		*/
-	}
-	//for _, v := range keys {
-	/*	val, err := getRec(v, client)
-		panicOnError(err)
+		//	}
+		//for _, v := range keys {
+		/*	val, err := getRec(v, client)
+			panicOnError(err)
 
-		fmt.Println("V--->", val) */
-	//	}
+			fmt.Println("V--->", val) */
+	}
 	//fmt.Printf("%v\n", runOutput)
 }
 
